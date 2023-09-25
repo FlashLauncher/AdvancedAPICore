@@ -18,12 +18,15 @@ public class GitHubChunkedRepo extends Market {
     private static final WebClient client = new WebClient() {{ allowRedirect = true; timeout = 5000; }};
     public final String repo, branch, path;
     private final ConcurrentLinkedQueue<Meta> metas = new ConcurrentLinkedQueue<>();
+    private final Object locker = new Object();
+    private boolean isNotFinished = false;
 
     public GitHubChunkedRepo(final PluginContext context, final String id, final Object name, final IImage icon, final String repo, final String branch, final String path) {
         super(id, name, icon);
         this.repo = repo;
         this.branch = branch;
         this.path = path;
+
         context.addTaskGroup(new TaskGroupAutoProgress(1) {{
             addTask(new Task() {
                 @Override
@@ -102,17 +105,32 @@ public class GitHubChunkedRepo extends Market {
                                             }};
                                         }
                                     });
-                                    System.out.println(d);
                                 }
                     } catch (final Throwable ex) {
                         ex.printStackTrace();
+                    }
+                    synchronized (locker) {
+                        isNotFinished = true;
+                        locker.notifyAll();
                     }
                 }
             });
         }});
     }
 
-    @Override public void checkForUpdates(final Meta... items) {}
+    @Override public void checkForUpdates(final Meta... items) {
+        try {
+            synchronized (locker) {
+                if (isNotFinished)
+                    locker.wait();
+            }
+            for (final Meta m : items) {
+                System.out.println(m.getID() + " - " + m.getVersion());
+            }
+        } catch (final InterruptedException ex) {
+            ex.printStackTrace();
+        }
+    }
 
     @Override
     public Meta[] find(String search) {
