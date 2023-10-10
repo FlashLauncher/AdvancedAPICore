@@ -3,6 +3,7 @@ package Utils.web;
 import Utils.Core;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.*;
@@ -60,7 +61,10 @@ public class WebClient {
                             while (true) {
                                 b = is.read();
                                 if (b == -1) {
-                                    try { s.close(); } catch (final IOException ignored) {}
+                                    try {
+                                        s.close();
+                                    } catch (final IOException ignored) {
+                                    }
                                     return;
                                 }
                                 final char ch = (char) b;
@@ -71,14 +75,20 @@ public class WebClient {
                                     if (i == 0) {
                                         final int pe = l.indexOf(' ');
                                         if (pe == -1) {
-                                            try { s.close(); } catch (final IOException ignored) {}
+                                            try {
+                                                s.close();
+                                            } catch (final IOException ignored) {
+                                            }
                                             return;
                                         }
                                         //System.out.println(l.substring(0, pe));
                                         l = l.substring(pe + 1);
                                         final int ce = l.indexOf(' ');
                                         if (ce == -1) {
-                                            try { s.close(); } catch (final IOException ignored) {}
+                                            try {
+                                                s.close();
+                                            } catch (final IOException ignored) {
+                                            }
                                             return;
                                         }
                                         rc = Integer.parseInt(l.substring(0, ce));
@@ -86,7 +96,10 @@ public class WebClient {
                                     } else {
                                         final int eq = line.indexOf(":");
                                         if (eq == -1) {
-                                            try { s.close(); } catch (final IOException ignored) {}
+                                            try {
+                                                s.close();
+                                            } catch (final IOException ignored) {
+                                            }
                                             return;
                                         }
                                         //System.out.println(line);
@@ -104,7 +117,8 @@ public class WebClient {
                                     url = new URI(headers.get("Location")).toURL();
                                     try {
                                         s.close();
-                                    } catch (final IOException ignored) {}
+                                    } catch (final IOException ignored) {
+                                    }
                                     connect();
                                     return;
                                 } catch (final URISyntaxException ex) {
@@ -114,6 +128,9 @@ public class WebClient {
                             responseCode = rc;
                             //System.out.println(rc);
                             //System.out.println(response);
+                        } catch (final SSLHandshakeException ex) {
+                            try { s.close(); } catch (final IOException ignored) {}
+                            responseCode = -2;
                         } catch (final IOException ex) {
                             try { s.close(); } catch (final IOException ignored) {}
                             throw ex;
