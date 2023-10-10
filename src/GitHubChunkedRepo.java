@@ -19,13 +19,15 @@ public class GitHubChunkedRepo extends Market {
     public final String repo, branch, path;
     private final ConcurrentLinkedQueue<Meta> metas = new ConcurrentLinkedQueue<>();
     private final Object locker = new Object();
-    private boolean isNotFinished = false;
+    private boolean isNotFinished = true;
+    public final PluginContext context;
 
     public GitHubChunkedRepo(final PluginContext context, final String id, final Object name, final IImage icon, final String repo, final String branch, final String path) {
         super(id, name, icon);
         this.repo = repo;
         this.branch = branch;
         this.path = path;
+        this.context = context;
 
         context.addTaskGroup(new TaskGroupAutoProgress(1) {{
             addTask(new Task() {
@@ -110,7 +112,7 @@ public class GitHubChunkedRepo extends Market {
                         ex.printStackTrace();
                     }
                     synchronized (locker) {
-                        isNotFinished = true;
+                        isNotFinished = false;
                         locker.notifyAll();
                     }
                 }
@@ -125,7 +127,15 @@ public class GitHubChunkedRepo extends Market {
                     locker.wait();
             }
             for (final Meta m : items) {
-                System.out.println(m.getID() + " - " + m.getVersion());
+                for (final Meta m1 : metas)
+                    if (m1.getID().equals(m.getID())) {
+                        if (!m1.getVersion().equals(m.getVersion())) {
+                            final TaskGroup g = m1.install();
+                            if (FLCore.bindTaskGroup(m1.getID(), g))
+                                context.addTaskGroup(g);
+                        }
+                        break;
+                    }
             }
         } catch (final InterruptedException ex) {
             ex.printStackTrace();
