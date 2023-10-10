@@ -1,3 +1,5 @@
+package UtilsPlugins;
+
 import Launcher.Plugin;
 import Launcher.PluginContext;
 import UIL.Lang;
@@ -7,6 +9,7 @@ import Utils.FSFile;
 import Utils.FSRoot;
 import Utils.json.Json;
 import Utils.json.JsonDict;
+import Utils.web.GitHubChunkedRepo;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
