@@ -10,6 +10,7 @@ import Utils.web.WebResponse;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -82,6 +83,14 @@ public class GitHubChunkedRepo extends Market {
                         if (l != null)
                             for (final File f : l)
                                 for (final JsonDict d : Json.parse(Files.newInputStream(f.toPath()), true, StandardCharsets.UTF_8).getAsList().toArray(new JsonDict[0])) {
+                                    URI uri = null;
+                                    if (d.has("icon"))
+                                        try {
+                                            uri = URI.create(d.getAsString("icon"));
+                                        } catch (final IllegalArgumentException ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    final WebImage icon = uri == null ? null : new WebImage(client, uri);
                                     metas.add(new Meta(d.getAsString("id"), new Version(d.getAsString("version")), d.getAsString("author")) {
                                         private final String
                                                 n = d.getAsString("name"),
@@ -89,7 +98,7 @@ public class GitHubChunkedRepo extends Market {
                                                 asset = d.getAsString("asset")
                                         ;
 
-                                        @Override public IImage getIcon() { return null; }
+                                        @Override public IImage getIcon() { return icon; }
                                         @Override public Object getName() { return n; }
                                         @Override public Object getShortDescription() { return sd; }
 
