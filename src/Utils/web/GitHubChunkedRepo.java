@@ -94,7 +94,7 @@ public class GitHubChunkedRepo extends Market {
                                     metas.add(new Meta(d.getAsString("id"), new Version(d.getAsString("version")), d.getAsString("author")) {
                                         private final String
                                                 n = d.getAsString("name"),
-                                                sd = d.getAsString("shortDescription"),
+                                                sd = d.getAsStringOrDefault("shortDescription", null),
                                                 asset = d.getAsString("asset")
                                         ;
 
