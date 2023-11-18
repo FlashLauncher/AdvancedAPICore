@@ -16,6 +16,9 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class GitHubChunkedRepo extends Market {
     private static final WebClient client = new WebClient() {{ allowRedirect = true; timeout = 5000; }};
@@ -108,11 +111,47 @@ public class GitHubChunkedRepo extends Market {
                                                 addTask(new Task() {
                                                     @Override
                                                     public void run() throws Throwable {
-                                                        final ByteArrayOutputStream os = new ByteArrayOutputStream();
-                                                        final WebResponse r = client.open("GET", new URI(asset), os, true);
-                                                        r.auto();
-                                                        if (r.getResponseCode() == WebResponse.OK)
-                                                            addTask(new InstallPluginTask(os.toByteArray()));
+                                                        while (true) {
+                                                            ByteArrayOutputStream os = new ByteArrayOutputStream();
+                                                            final WebResponse r = client.open("GET", new URI(asset), os, true);
+                                                            r.auto();
+                                                            if (r.getResponseCode() == WebResponse.OK) {
+                                                                if (FlashLauncher.VERSION.isCompatibility("0.2,0.2.1,-"))
+                                                                    try {
+                                                                        System.out.println("Fix InstallPluginTask.java");
+                                                                        final ByteArrayOutputStream os2 = new ByteArrayOutputStream();
+                                                                        try (
+                                                                                final ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(os.toByteArray()));
+                                                                                final ZipOutputStream zos = new ZipOutputStream(os2)
+                                                                                ) {
+                                                                            for (ZipEntry e = zis.getNextEntry(); e != null; e = zis.getNextEntry()) {
+                                                                                zos.putNextEntry(new ZipEntry(e.getName()));
+                                                                                if (!e.getName().endsWith("/")) {
+                                                                                    final byte[] d = IO.readFully(zis, false);
+                                                                                    zos.write(d, 0, d.length);
+                                                                                    if (e.getName().equals("fl-info.ini")) {
+                                                                                        zos.closeEntry();
+                                                                                        zos.putNextEntry(new ZipEntry("fl-plugin.ini"));
+                                                                                        zos.write(d, 0, d.length);
+                                                                                    }
+                                                                                }
+                                                                                zos.closeEntry();
+                                                                            }
+                                                                        }
+                                                                        os = os2;
+                                                                    } catch (final Exception ex) {
+                                                                        ex.printStackTrace();
+                                                                    }
+                                                                addTask(new InstallPluginTask(os.toByteArray()));
+                                                                break;
+                                                            } else {
+                                                                final long s = Long.parseLong(r.headers.get("X-RateLimit-Reset")) * 1000 - System.currentTimeMillis();
+                                                                if (s <= 0)
+                                                                    continue;
+                                                                System.out.println("Rate Limit, wait " + (s / 1000) + "s");
+                                                                Thread.sleep(s);
+                                                            }
+                                                        }
                                                     }
                                                 });
                                             }};
