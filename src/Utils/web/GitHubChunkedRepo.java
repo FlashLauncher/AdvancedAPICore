@@ -116,7 +116,7 @@ public class GitHubChunkedRepo extends Market {
                                                             final WebResponse r = client.open("GET", new URI(asset), os, true);
                                                             r.auto();
                                                             if (r.getResponseCode() == WebResponse.OK) {
-                                                                if (FlashLauncher.VERSION.isCompatibility("0.2,0.2.1,-"))
+                                                                if (FlashLauncher.VERSION.toString().equals("0.2") || FlashLauncher.VERSION.toString().equals("0.2.1"))
                                                                     try {
                                                                         System.out.println("Fix InstallPluginTask.java");
                                                                         final ByteArrayOutputStream os2 = new ByteArrayOutputStream();
