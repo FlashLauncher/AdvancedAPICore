@@ -7,7 +7,12 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,19 +37,27 @@ public class WebClient {
                     private InputStream is;
 
                     @Override
-                    public void connect() throws IOException {
+                    public void connect(final Map<String, String> headers, final byte[] data) throws IOException {
                         final byte[] send;
                         {
                             final StringBuilder b = new StringBuilder(method).append(" ").append(
-                                    url.getFile().isEmpty() ? "/" :
-                                            //URLEncoder.encode(url.getFile(), StandardCharsets.UTF_8.toString())
-                                            //url.getFile().replaceAll("\\+", "%20").replaceAll(" ", "+")
-                                            Core.encodeURI(url.getFile())
+                                    url.getFile().isEmpty() ? "/" : Core.encodeURI(url.getFile())
                             ).append(" HTTP/1.1\nHost: ").append(url.getHost()).append(url.getPort() == -1 ? "" : ":" + url.getPort()).append("\n");
-                            for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
-                                b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
-                            send = b.append("Content-Length: 0\n\n").toString().getBytes(StandardCharsets.UTF_8);
-                            //System.out.println(Core.encodeURI(url.getFile()));
+
+                            if (headers == null || headers.isEmpty())
+                                for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
+                                    b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                            else {
+                                for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
+                                    if (!headers.containsKey(e.getKey()))
+                                        b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                                for (final Map.Entry<String, String> e : headers.entrySet())
+                                    b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                            }
+
+                            if (data != null)
+                                b.append("Content-Length: ").append(data.length).append('\n');
+                            send = b.append('\n').toString().getBytes(StandardCharsets.UTF_8);
                         }
                         s = url.getProtocol().equals("https") ? sslSocketFactory.createSocket() : new Socket();
                         try {
@@ -53,6 +66,8 @@ public class WebClient {
 
                             os = s.getOutputStream();
                             os.write(send);
+                            if (data != null)
+                                os.write(data);
                             os.flush();
 
                             is = s.getInputStream();
@@ -63,8 +78,7 @@ public class WebClient {
                                 if (b == -1) {
                                     try {
                                         s.close();
-                                    } catch (final IOException ignored) {
-                                    }
+                                    } catch (final IOException ignored) {}
                                     return;
                                 }
                                 final char ch = (char) b;
@@ -81,7 +95,6 @@ public class WebClient {
                                             }
                                             return;
                                         }
-                                        //System.out.println(l.substring(0, pe));
                                         l = l.substring(pe + 1);
                                         final int ce = l.indexOf(' ');
                                         if (ce == -1) {
@@ -103,7 +116,7 @@ public class WebClient {
                                             return;
                                         }
                                         //System.out.println(line);
-                                        headers.put(line.substring(0, eq), line.substring(eq + 2));
+                                        this.headers.put(line.substring(0, eq), line.substring(eq + 2));
                                     }
                                     line = new StringBuilder();
                                     i++;
@@ -112,22 +125,19 @@ public class WebClient {
                                 line.append(ch);
                                 pb = b;
                             }
-                            if ((rc >= 301 && rc <= 303 || rc == 307) && headers.containsKey("Location") && allowRedirect) {
+                            if ((rc >= 301 && rc <= 303 || rc == 307) && this.headers.containsKey("Location") && allowRedirect) {
                                 try {
-                                    url = new URI(headers.get("Location")).toURL();
+                                    url = new URI(this.headers.get("Location")).toURL();
                                     try {
                                         s.close();
-                                    } catch (final IOException ignored) {
-                                    }
-                                    connect();
+                                    } catch (final IOException ignored) {}
+                                    connect(headers, data);
                                     return;
                                 } catch (final URISyntaxException ex) {
                                     ex.printStackTrace();
                                 }
                             }
                             responseCode = rc;
-                            //System.out.println(rc);
-                            //System.out.println(response);
                         } catch (final SSLHandshakeException ex) {
                             try { s.close(); } catch (final IOException ignored) {}
                             responseCode = -2;
@@ -182,10 +192,39 @@ public class WebClient {
                     @Override public void close() throws IOException { s.close(); outputStream.flush(); if (autoCloseStream) outputStream.close(); }
                 };
             default: return new WebResponse(outputStream) {
-                @Override public void connect() {}
+                @Override public void connect(final Map<String, String> headers, final byte[] data) {}
                 @Override public void readAll() {}
                 @Override public void close() {}
             };
+        }
+    }
+
+    public static void postFormData(final Map<String, Object> map, OutputStream os) throws IOException {
+        boolean first = true;
+        for (final Map.Entry<String, Object> e : map.entrySet()) {
+            if (first)
+                first = false;
+            else
+                os.write('&');
+            os.write((URLEncoder.encode(e.getKey(), "UTF-8") + '=').getBytes(StandardCharsets.UTF_8));
+            if (e.getValue() instanceof String)
+                os.write(URLEncoder.encode((String) e.getValue(), "UTF-8").getBytes(StandardCharsets.UTF_8));
+            else if (e.getValue() instanceof char[]) {
+                final ByteBuffer bb = StandardCharsets.UTF_8.encode(CharBuffer.wrap((char[]) e.getValue()));
+                final byte[] d = new byte[bb.remaining()];
+                bb.get(d);
+                os.write(d);
+            } else
+                os.write(URLEncoder.encode(e.getValue().toString(), "UTF-8").getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static byte[] postFormData(final Map<String, Object> map) throws IOException {
+        try (
+                final ByteArrayOutputStream os = new ByteArrayOutputStream()
+        ) {
+            postFormData(map, os);
+            return os.toByteArray();
         }
     }
 }
