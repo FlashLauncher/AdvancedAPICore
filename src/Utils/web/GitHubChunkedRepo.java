@@ -21,7 +21,14 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class GitHubChunkedRepo extends Market {
-    private static final WebClient client = new WebClient() {{ allowRedirect = true; timeout = 5000; }};
+    private static final WebClient client = new WebClient();
+
+    static {
+        client.allowRedirect = true;
+        client.timeout = 5000;
+        client.headers.put("User-Agent", "FlashLauncher/AdvancedAPICore (mcflashlauncher@gmail.com)");
+    }
+
     public final String repo, branch, path;
     private final ConcurrentLinkedQueue<Meta> metas = new ConcurrentLinkedQueue<>();
     private final Object locker = new Object();
