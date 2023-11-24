@@ -17,8 +17,6 @@ public class WebRequest {
         method = readTo(' ');
         path = readTo(' ');
         protocol = readLine();
-
-
     }
 
     private char readChar() throws IOException {
