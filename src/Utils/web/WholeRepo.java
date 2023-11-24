@@ -13,6 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 
+/**
+ * @since AdvancedAPICore 0.2.1
+ */
 public class WholeRepo extends Market {
     public final PluginContext context;
     public final WebClient client;
