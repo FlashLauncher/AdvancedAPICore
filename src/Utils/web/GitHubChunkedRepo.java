@@ -5,12 +5,9 @@ import UIL.base.IImage;
 import Utils.*;
 import Utils.json.Json;
 import Utils.json.JsonDict;
-import Utils.web.WebClient;
-import Utils.web.WebResponse;
 
 import java.io.*;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
