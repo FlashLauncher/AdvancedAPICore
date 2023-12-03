@@ -9,14 +9,13 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WebClient {
+    public static final byte[] NO_DATA = new byte[0];
+
     public SSLSocketFactory sslSocketFactory = HttpsURLConnection.getDefaultSSLSocketFactory();
 
     public ConcurrentHashMap<String, String> headers = new ConcurrentHashMap<String, String>()
