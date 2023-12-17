@@ -24,13 +24,14 @@ public class WebClient {
     public int timeout = 5000;
     public boolean allowRedirect = false;
 
-    public WebResponse open(final String method, final URI uri, final OutputStream outputStream, final boolean autoCloseStream) throws IOException { return open(method, uri.toURL(), outputStream, autoCloseStream); }
+    public WebResponse open(final String method, final URI uri, final OutputStream outputStream, final boolean autoCloseStream) throws IOException { return open(method, new sURL(uri.toURL()), outputStream, autoCloseStream); }
+    public WebResponse open(final String method, final URL url, final OutputStream outputStream, final boolean autoCloseStream) throws IOException { return open(method, new sURL(url), outputStream, autoCloseStream); }
 
-    public WebResponse open(final String method, final URL urlAddr, final OutputStream outputStream, final boolean autoCloseStream) throws IOException {
-        switch (urlAddr.getProtocol()) {
-            case "https": case "http":
+    public WebResponse open(final String method, final sURL urlAddr, final OutputStream outputStream, final boolean autoCloseStream) throws IOException {
+        switch (urlAddr.scheme) {
+            case "https": case "http": case "":
                 return new WebResponse(outputStream) {
-                    private URL url = urlAddr;
+                    private sURL url = urlAddr;
                     private Socket s;
                     private OutputStream os;
                     private InputStream is;
@@ -40,8 +41,8 @@ public class WebClient {
                         final byte[] send;
                         {
                             final StringBuilder b = new StringBuilder(method).append(" ").append(
-                                    url.getFile().isEmpty() ? "/" : Core.encodeURI(url.getFile())
-                            ).append(" HTTP/1.1\nHost: ").append(url.getHost()).append(url.getPort() == -1 ? "" : ":" + url.getPort()).append("\n");
+                                    url.file.isEmpty() ? "/" : Core.encodeURI(url.file)
+                            ).append(" HTTP/1.1\nHost: ").append(url.domain).append(url.port == -1 ? "" : ":" + url.port).append("\n");
 
                             if (headers == null || headers.isEmpty())
                                 for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
@@ -58,10 +59,12 @@ public class WebClient {
                                 b.append("Content-Length: ").append(data.length).append('\n');
                             send = b.append('\n').toString().getBytes(StandardCharsets.UTF_8);
                         }
-                        s = url.getProtocol().equals("https") ? sslSocketFactory.createSocket() : new Socket();
+                        s = url.scheme.equals("https") ? sslSocketFactory.createSocket() : new Socket();
                         try {
                             s.setSoTimeout(timeout);
-                            s.connect(new InetSocketAddress(url.getHost(), url.getPort() == -1 ? url.getDefaultPort() : url.getPort()));
+                            s.connect(new InetSocketAddress(url.domain,
+                                    url.port == -1 ? url.scheme.equals("https") ? 443 : 80 :
+                                            url.port));
 
                             os = s.getOutputStream();
                             os.write(send);
@@ -126,13 +129,13 @@ public class WebClient {
                             }
                             if ((rc >= 301 && rc <= 303 || rc == 307) && this.headers.containsKey("Location") && allowRedirect) {
                                 try {
-                                    url = new URI(this.headers.get("Location")).toURL();
+                                    url = new sURL(this.headers.get("Location"));
                                     try {
                                         s.close();
                                     } catch (final IOException ignored) {}
                                     connect(headers, data);
                                     return;
-                                } catch (final URISyntaxException ex) {
+                                } catch (final Exception ex) {
                                     ex.printStackTrace();
                                 }
                             }
