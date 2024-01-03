@@ -6,12 +6,18 @@ import java.net.URL;
  * @since AdvancedAPICore 0.2.2
  */
 public class sURL {
+    /**
+     * @since AdvancedAPICore 0.2.2
+     */
     public final String
             scheme,
             domain,
             file
     ;
 
+    /**
+     * @since AdvancedAPICore 0.2.2
+     */
     public final int port;
 
     /**
