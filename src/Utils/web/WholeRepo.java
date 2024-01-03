@@ -10,7 +10,6 @@ import Utils.json.JsonList;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.net.URI;
 import java.util.ArrayList;
 
 /**
@@ -44,7 +43,7 @@ public class WholeRepo extends Market {
             if (list == null)
                 try {
                     final ByteArrayOutputStream os = new ByteArrayOutputStream();
-                    final WebResponse r = client.open("GET", URI.create(url + "packages.json"), os, true);
+                    final WebResponse r = client.open("GET", new sURL(url + "packages.json"), os, true);
                     r.auto();
                     if (r.getResponseCode() == 200) {
                         final JsonList l = Json.parse(new ByteArrayInputStream(os.toByteArray()), true, "UTF-8").getAsList();
@@ -83,7 +82,7 @@ public class WholeRepo extends Market {
                                                     public void run() throws Throwable {
                                                         final ByteArrayOutputStream os = new ByteArrayOutputStream();
                                                         final WebResponse r = client.open("GET",
-                                                                URI.create(url + "packages/" + getID() + "/" + getVersion().toString() + ".jar"), os, true);
+                                                                new sURL(url + "packages/" + getID() + "/" + getVersion().toString() + ".jar"), os, true);
                                                         r.auto();
                                                         if (r.getResponseCode() == 200)
                                                             addTask(new InstallPluginTask(os.toByteArray()));

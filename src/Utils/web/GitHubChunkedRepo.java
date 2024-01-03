@@ -45,7 +45,7 @@ public class GitHubChunkedRepo extends Market {
                 public void run() {
                     try {
                         ByteArrayOutputStream os = new ByteArrayOutputStream();
-                        client.open("GET", new URI("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path), os, true).auto();
+                        client.open("GET", new sURL("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path), os, true).auto();
                         IniGroup g = new IniGroup(new String(os.toByteArray(), StandardCharsets.UTF_8), false).getAsGroup(FlashLauncher.VERSION.toString());
                         final File c = new File(context.getPluginCache(), id);
                         final ArrayList<String> allowed = new ArrayList<>();
@@ -59,7 +59,7 @@ public class GitHubChunkedRepo extends Market {
                                     continue;
                                 }
                                 os = new ByteArrayOutputStream();
-                                client.open("GET", new URI("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + e.getValue()), os, true).auto();
+                                client.open("GET", new sURL("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + e.getValue()), os, true).auto();
                                 final byte[] d = os.toByteArray();
                                 if (Core.hashToHex("SHA-256", d).equals(e.getKey()))
                                     try (final FileOutputStream fos = new FileOutputStream(f)) {
@@ -90,14 +90,14 @@ public class GitHubChunkedRepo extends Market {
                         if (l != null)
                             for (final File f : l)
                                 for (final JsonDict d : Json.parse(Files.newInputStream(f.toPath()), true, StandardCharsets.UTF_8).getAsList().toArray(new JsonDict[0])) {
-                                    URI uri = null;
+                                    sURL url = null;
                                     if (d.has("icon"))
                                         try {
-                                            uri = URI.create(d.getAsString("icon"));
+                                            url = new sURL(d.getAsString("icon"));
                                         } catch (final IllegalArgumentException ex) {
                                             ex.printStackTrace();
                                         }
-                                    final WebImage icon = uri == null ? null : new WebImage(client, uri);
+                                    final WebImage icon = url == null ? null : new WebImage(client, url);
                                     metas.add(new Meta(d.getAsString("id"), new Version(d.getAsString("version")), d.getAsString("author")) {
                                         private final String
                                                 n = d.getAsString("name"),
