@@ -1,5 +1,6 @@
 package Utils.web;
 
+import java.net.URI;
 import java.net.URL;
 
 /**
@@ -38,6 +39,16 @@ public class sURL {
         this.domain = url.getHost();
         this.port = url.getPort();
         this.file = url.getFile();
+    }
+
+    /**
+     * @since AdvancedAPICore 0.2.3
+     */
+    public sURL(final URI uri) {
+        this.scheme = uri.getScheme();
+        this.domain = uri.getHost();
+        this.port = uri.getPort();
+        this.file = uri.getPath();
     }
 
     /**
