@@ -162,7 +162,14 @@ public class WebClient {
                                         if (ch == '\r') continue;
                                         if (ch == '\n') {
                                             if (len.length() == 0) continue;
-                                            int size = Core.fromHexInt(len.toString()), r;
+
+                                            int size, r;
+                                            try {
+                                                size = Core.fromHexInt(len.toString());
+                                            } catch (final NumberFormatException ex) {
+                                                System.out.println(len);
+                                                throw ex;
+                                            }
                                             len = new StringBuilder();
                                             if (size == 0) break;
                                             while (size > 0) {
