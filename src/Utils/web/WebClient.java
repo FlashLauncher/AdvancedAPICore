@@ -42,22 +42,22 @@ public class WebClient {
                         {
                             final StringBuilder b = new StringBuilder(method).append(" ").append(
                                     url.file.isEmpty() ? "/" : Core.encodeURI(url.file)
-                            ).append(" HTTP/1.1\nHost: ").append(url.domain).append(url.port == -1 ? "" : ":" + url.port).append("\n");
+                            ).append(" HTTP/1.1\r\nHost: ").append(url.domain).append(url.port == -1 ? "" : ":" + url.port).append("\r\n");
 
                             if (headers == null || headers.isEmpty())
                                 for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
-                                    b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                                    b.append(e.getKey()).append(": ").append(e.getValue()).append("\r\n");
                             else {
                                 for (Map.Entry<String, String> e : WebClient.this.headers.entrySet())
                                     if (!headers.containsKey(e.getKey()))
-                                        b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                                        b.append(e.getKey()).append(": ").append(e.getValue()).append("\r\n");
                                 for (final Map.Entry<String, String> e : headers.entrySet())
-                                    b.append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+                                    b.append(e.getKey()).append(": ").append(e.getValue()).append("\r\n");
                             }
 
                             if (data != null)
-                                b.append("Content-Length: ").append(data.length).append('\n');
-                            send = b.append('\n').toString().getBytes(StandardCharsets.UTF_8);
+                                b.append("Content-Length: ").append(data.length).append("\r\n");
+                            send = b.append("\r\n").toString().getBytes(StandardCharsets.UTF_8);
                         }
                         s = url.scheme.equals("https") ? sslSocketFactory.createSocket() : new Socket();
                         try {
@@ -88,6 +88,7 @@ public class WebClient {
                                     if (pb == b) break;
                                     pb = b;
                                     String l = line.toString();
+                                    //System.err.println("--" + l);
                                     if (i == 0) {
                                         final int pe = l.indexOf(' ');
                                         if (pe == -1) {
